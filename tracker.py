@@ -20,11 +20,12 @@ def load_jurisdictions(config_path):
 def download_pdf(jurisdiction):
     timeout_seconds = 10;
     bytes_downloaded = 0;
+    jurisdiction_name = jurisdiction["name"]
 
     # Check for empty string
     if jurisdiction["document_url"] == "":
-        print(f"{jurisdiction["name"]}'s document URL is empty!")
-        return 0;
+        print(f"{jurisdiction_name}'s document URL is empty!")
+        return None;
 
     # Mask urllib as a user so we don't get 403s
     opener = urllib.request.build_opener()
@@ -35,11 +36,11 @@ def download_pdf(jurisdiction):
         with urllib.request.urlopen(jurisdiction["document_url"], timeout=timeout_seconds) as response:
             # Check content & make sure it's a PDF
             if not 'application/pdf' in response.info()['content-type']:
-                print(f"{jurisdiction["name"]}: FAILURE. Error: download link for {jurisdiction["name"]} is not a PDF!")
-                return 0;
+                print(f"{jurisdiction_name}: FAILURE. Error: download link for {jurisdiction_name} is not a PDF!")
+                return None;
             if not (file_bytes := response.read(16)).startswith(b'%PDF-'):
-                print(f"{jurisdiction["name"]}: FAILURE. Error: download link for {jurisdiction["name"]} is not a PDF!")
-                return 0; 
+                print(f"{jurisdiction_name}: FAILURE. Error: download link for {jurisdiction_name} is not a PDF!")
+                return None; 
 
             # Increment bytes_downloaded first
             bytes_downloaded += len(file_bytes)
@@ -54,26 +55,29 @@ def download_pdf(jurisdiction):
                 bytes_downloaded += len(chunk)
 
     except urllib.error.URLError as e:
-        print(f"{jurisdiction["name"]}: FAILURE. Error: download timed out/errored for {jurisdiction["name"]}! {e}")
-        return 0;
+        print(f"{jurisdiction_name}: FAILURE. Error: download timed out/errored for {jurisdiction_name}! {e}")
+        return None;
     except FileNotFoundError:
-        print(f"{jurisdiction["name"]}: FAILURE. Error: file not found for {jurisdiction["name"]}!")
-        return 0;
+        print(f"{jurisdiction_name}: FAILURE. Error: file not found for {jurisdiction_name}!")
+        return None;
     except Exception as e:
-        print(f"{jurisdiction["name"]}: FAILURE. Error: file not processed for {jurisdiction["name"]}! {e}")
-        return 0;
+        print(f"{jurisdiction_name}: FAILURE. Error: file not processed for {jurisdiction_name}! {e}")
+        return None;
 
     # Make sure the bytes downloaded matches what we expect before writing
     if (bytes_downloaded != len(file_bytes)):
-        print(f"{jurisdiction['name']}: FAILURE. Downloaded byte count does not match collected content.")
-        return 0;
+        print(f"{jurisdiction_name}: FAILURE. Downloaded byte count does not match collected content.")
+        return None;
 
+    # Return downloaded bytes
+    return file_bytes
 
+def save_pdf(file_bytes, jurisdiction_id, jurisdiction_name):
     # Set directory & path
-    output_dir = script_dir / "data" / "documents" / f"{jurisdiction["id"]}"
-    output_path = output_dir / f"{jurisdiction["id"]}_zoning.pdf"
+    output_dir = script_dir / "data" / "documents" / jurisdiction_id
+    output_path = output_dir / f"{jurisdiction_id}_zoning.pdf"
     # Temp file
-    temp_path = output_dir / f"{jurisdiction["id"]}_zoning_temp.pdf"
+    temp_path = output_dir / f"{jurisdiction_id}_zoning_temp.pdf"
 
     try:
         # Make directory if it doesn't exist yet
@@ -83,27 +87,27 @@ def download_pdf(jurisdiction):
             file.write(file_bytes)
 
         # Time to check the file written
-        if (bytes_downloaded != temp_path.stat().st_size):
-            raise OSError(f"{jurisdiction["name"]}: ERROR. Saved file size mismatch: expected {bytes_downloaded} bytes but saved {temp_path.stat().st_size} bytes instead!")
+        if (len(file_bytes) != temp_path.stat().st_size):
+            raise OSError(f"{jurisdiction_name}: ERROR. Saved file size mismatch: expected {len(file_bytes)} bytes but saved {temp_path.stat().st_size} bytes instead!")
 
         # Remove _temp from name
         os.replace(temp_path, output_path)
 
     except OSError as e:
-        print(f"{jurisdiction["name"]}: ERROR. Could not save file. {e}")
-        return 0;
+        print(f"{jurisdiction_name}: ERROR. Could not save file. {e}")
+        return False;
     
     else:
         # No errors, so success!        
-        print(f"{jurisdiction["name"]}: SUCCESS. File saved successfully to: {output_path} - {bytes_downloaded} bytes")
-        return 1;
+        print(f"{jurisdiction_name}: SUCCESS. File saved successfully to: {output_path} - {len(file_bytes)} bytes")
+        return True;
 
     finally:
         try:
             # Delete temp file
             temp_path.unlink(missing_ok=True)
         except Exception as e:
-            print(f"{jurisdiction["name"]}: WARNING. Could not remove temporary file. {e}")
+            print(f"{jurisdiction_name}: WARNING. Could not remove temporary file. {e}")
 
 
 def main():
@@ -111,7 +115,12 @@ def main():
     success_downloads = 0;
 
     for jurisdiction in jurisdictions:
-        success_downloads += download_pdf(jurisdiction)
+        pdf_download = download_pdf(jurisdiction)
+
+        # If download did not fail AND save_pdf went well
+        if (pdf_download is not None and save_pdf(pdf_download, jurisdiction["id"], jurisdiction["name"])):
+            success_downloads += 1;
+        
 
     print(f"Number of successful downloads: {success_downloads}")
     print(f"Number of failed downloads: {len(jurisdictions) - success_downloads}")
