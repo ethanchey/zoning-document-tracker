@@ -1,0 +1,26 @@
+[
+    {
+        "id": "dexter",
+        "name": "Dexter",
+        "state": "MI",
+        "official_source_page": "https://www.dextertownshipmi.gov/ordinances/",
+        "document_url": "https://www.dextertownshipmi.gov/wp-content/uploads/Dexter-Township-Zoning-Ordinance-as-Amended-through-October-07-2026.pdf",
+        "document_title": "Zoning Ordinance 2020"
+    },
+    {
+        "id": "webster",
+        "name": "Webster Township",
+        "state": "MI",
+        "official_source_page": "https://www.twp.webster.mi.us/services/master_plan_and_ordinances.php#outer-764",
+        "document_url": "https://cms9files.revize.com/webstertwpmi/17%20-%20Zoning%20Ordinance%20Amended-Updated-10-15-25.pdf?t=202510160040030",
+        "document_title": "Zoning Ordinance 2020"
+    },
+    {
+        "id": "lyon",
+        "name": "Lyon Township",
+        "state": "MI",
+        "official_source_page": "https://www.lyontwp.org/departments/code_and_ordinance_enforcement.php",
+        "document_url": "https://library.municode.com/mi/lyon_charter_township,_(oakland_co.)/codes/code_of_ordinances?nodeId=COOR_CH48ZO",
+        "document_title": "Zoning Ordinance 2020"
+    }
+]
